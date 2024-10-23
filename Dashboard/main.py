@@ -148,7 +148,7 @@ with tab3:
     st.write("Jika divisualisasikan dengan dengan bar chart, diperoleh visualisasi seperti grafik diatas. Nama produk dengan order paling banyak adalah Cama Mesa Banho (Tempat tidur, meja dan kamar mandi) dengan jumlah $10952$ order pada periode tersebut. Dikuti dengan 9 produk lainnya yang jumlah ordernya ada dibawah Cama Mesa Banho.")
 
 with tab4:
-    st.title("Analisis Lanjutan Menggunakan Folium dan Geopandas")
+    st.title("Analisis Lanjutan Menggunakan dan Geopandas")
     st.write("Dibuat sebuah analisis lanjutan untuk mengetahui lokasi 5 penjual dengan jumlah order terbanyak pada periode 2016-2018 di kota Sao Paulo.")
 
     df = gpd.GeoDataFrame(top_5_seller_sao_paulo, geometry=gpd.points_from_xy(top_5_seller_sao_paulo['geolocation_lng'], top_5_seller_sao_paulo['geolocation_lat']))
