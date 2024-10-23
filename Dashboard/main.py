@@ -11,7 +11,7 @@ import geopandas as gpd
 order_item = pd.read_csv(r'Data/order_items_dataset.csv') #order, produk, seller
 order = pd.read_csv(r'Data/orders_dataset.csv') #order, customer, status
 seller = pd.read_csv(r'Data/sellers_dataset.csv') #seller, city
-customer = pd.read_csv(r'Data/Data/customers_dataset.csv') #customer, city
+customer = pd.read_csv(r'Data/customers_dataset.csv') #customer, city
 product = pd.read_csv(r'Data/products_dataset.csv') #product_id, category_product
 geolocation = pd.read_csv(r'Data/geolocation_dataset.csv')
 
