@@ -8,12 +8,12 @@ from streamlit_folium import st_folium
 import contextily as cx
 import geopandas as gpd
 
-order_item = pd.read_csv(r'C:\Users\ADVAN\Downloads\E-commerce-public-dataset\E-Commerce Public Dataset\order_items_dataset.csv') #order, produk, seller
-order = pd.read_csv(r'C:\Users\ADVAN\Downloads\E-commerce-public-dataset\E-Commerce Public Dataset\orders_dataset.csv') #order, customer, status
-seller = pd.read_csv(r'C:\Users\ADVAN\Downloads\E-commerce-public-dataset\E-Commerce Public Dataset\sellers_dataset.csv') #seller, city
-customer = pd.read_csv(r'C:\Users\ADVAN\Downloads\E-commerce-public-dataset\E-Commerce Public Dataset\customers_dataset.csv') #customer, city
-product = pd.read_csv(r'C:\Users\ADVAN\Downloads\E-commerce-public-dataset\E-Commerce Public Dataset\products_dataset.csv') #product_id, category_product
-geolocation = pd.read_csv(r'C:\Users\ADVAN\Downloads\E-commerce-public-dataset\E-Commerce Public Dataset\geolocation_dataset.csv')
+order_item = pd.read_csv(r'order_items_dataset.csv') #order, produk, seller
+order = pd.read_csv(r'orders_dataset.csv') #order, customer, status
+seller = pd.read_csv(r'sellers_dataset.csv') #seller, city
+customer = pd.read_csv(r'Data/customers_dataset.csv') #customer, city
+product = pd.read_csv(r'products_dataset.csv') #product_id, category_product
+geolocation = pd.read_csv(r'geolocation_dataset.csv')
 
 order.dropna(inplace=True)
 product.dropna(inplace=True)
@@ -170,7 +170,7 @@ with tab4:
 
     # Tampilkan peta menggunakan streamlit-folium dengan ukuran lebih besar
     st.title("Peta dengan Folium")
-    st_folium(peta, width=700, height=500)eta dengan folium
+    st_folium(peta, width=700, height=500)
     peta = folium.Map(location=[-23.55052, -46.633308], zoom_start=12)
 
     # Menambahkan marker dari data top 5 seller
