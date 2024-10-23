@@ -158,32 +158,32 @@ with tab4:
     st.title("Analisis Lanjutan Menggunakan Folium dan Geopandas")
     st.write("Dibuat sebuah analisis lanjutan untuk mengetahui lokasi 5 penjual dengan jumlah order terbanyak pada periode 2016-2018 di kota Sao Paulo.")
     # Membuat peta dengan folium
-    peta = folium.Map(location=[-23.55052, -46.633308], zoom_start=12)
+    # peta = folium.Map(location=[-23.55052, -46.633308], zoom_start=12)
 
-    # Menambahkan marker dari data top 5 seller
-    for index, seller in top_5_seller_sao_paulo.iterrows():
-        folium.Marker(
-            location=[seller['geolocation_lat'], seller['geolocation_lng']],
-            popup=f"Order ID: {seller['order_id']}\nZip Code: {seller['seller_zip_code_prefix']}",
-            icon=folium.Icon(color="blue")
-        ).add_to(peta)
+    # # Menambahkan marker dari data top 5 seller
+    # for index, seller in top_5_seller_sao_paulo.iterrows():
+    #     folium.Marker(
+    #         location=[seller['geolocation_lat'], seller['geolocation_lng']],
+    #         popup=f"Order ID: {seller['order_id']}\nZip Code: {seller['seller_zip_code_prefix']}",
+    #         icon=folium.Icon(color="blue")
+    #     ).add_to(peta)
 
-    # Tampilkan peta menggunakan streamlit-folium dengan ukuran lebih besar
-    st.title("Peta dengan Folium")
-    st_folium(peta, width=700, height=500)
-    peta = folium.Map(location=[-23.55052, -46.633308], zoom_start=12)
+    # # Tampilkan peta menggunakan streamlit-folium dengan ukuran lebih besar
+    # st.title("Peta dengan Folium")
+    # st_folium(peta, width=700, height=500)
+    # peta = folium.Map(location=[-23.55052, -46.633308], zoom_start=12)
 
-    # Menambahkan marker dari data top 5 seller
-    for index, seller in top_5_seller_sao_paulo.iterrows():
-        folium.Marker(
-            location=[seller['geolocation_lat'], seller['geolocation_lng']],
-            popup=f"Order ID: {seller['order_id']}\nZip Code: {seller['seller_zip_code_prefix']}",
-            icon=folium.Icon(color="blue")
-        ).add_to(peta)
+    # # Menambahkan marker dari data top 5 seller
+    # for index, seller in top_5_seller_sao_paulo.iterrows():
+    #     folium.Marker(
+    #         location=[seller['geolocation_lat'], seller['geolocation_lng']],
+    #         popup=f"Order ID: {seller['order_id']}\nZip Code: {seller['seller_zip_code_prefix']}",
+    #         icon=folium.Icon(color="blue")
+    #     ).add_to(peta)
 
-    # Tampilkan peta menggunakan streamlit-folium dengan ukuran lebih besar
-    st.title("Peta dengan Folium")
-    st_folium(peta, width=700, height=500)
+    # # Tampilkan peta menggunakan streamlit-folium dengan ukuran lebih besar
+    # st.title("Peta dengan Folium")
+    # st_folium(peta, width=700, height=500)
 
     df = gpd.GeoDataFrame(top_5_seller_sao_paulo, geometry=gpd.points_from_xy(top_5_seller_sao_paulo['geolocation_lng'], top_5_seller_sao_paulo['geolocation_lat']))
     
