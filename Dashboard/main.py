@@ -8,12 +8,12 @@ from streamlit_folium import st_folium
 import contextily as cx
 import geopandas as gpd
 
-order_item = pd.read_csv(r'order_items_dataset.csv') #order, produk, seller
-order = pd.read_csv(r'orders_dataset.csv') #order, customer, status
-seller = pd.read_csv(r'sellers_dataset.csv') #seller, city
-customer = pd.read_csv(r'Data/customers_dataset.csv') #customer, city
-product = pd.read_csv(r'products_dataset.csv') #product_id, category_product
-geolocation = pd.read_csv(r'geolocation_dataset.csv')
+order_item = pd.read_csv(r'projek_analisis_data/Data/order_items_dataset.csv') #order, produk, seller
+order = pd.read_csv(r'projek_analisis_data/Data/orders_dataset.csv') #order, customer, status
+seller = pd.read_csv(r'projek_analisis_data/Data/sellers_dataset.csv') #seller, city
+customer = pd.read_csv(r'projek_analisis_data/Data/Data/customers_dataset.csv') #customer, city
+product = pd.read_csv(r'projek_analisis_data/Data/products_dataset.csv') #product_id, category_product
+geolocation = pd.read_csv(r'projek_analisis_data/Data/geolocation_dataset.csv')
 
 order.dropna(inplace=True)
 product.dropna(inplace=True)
