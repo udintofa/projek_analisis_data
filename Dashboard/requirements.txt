@@ -2,5 +2,6 @@ streamlit
 numpy>=1.22
 pandas
 matplotlib
-geopandas
 contextily
+folium
+streamlit-folium
