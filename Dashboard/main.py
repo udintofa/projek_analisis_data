@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import os as os
 import pandas as pd
 import streamlit as st
-import contextily as cx
-import geopandas as gpd
+import folium
+from folium.plugins import MarkerCluster
+from streamlit_folium import st_folium
 
 order_item = pd.read_csv(r'Data/order_items_dataset.csv') #order, produk, seller
 order = pd.read_csv(r'Data/orders_dataset.csv') #order, customer, status
@@ -13,158 +14,296 @@ customer = pd.read_csv(r'Data/customers_dataset.csv') #customer, city
 product = pd.read_csv(r'Data/products_dataset.csv') #product_id, category_product
 geolocation = pd.read_csv(r'Data/geolocation_dataset.csv')
 
-order.dropna(inplace=True)
+order.order_delivered_customer_date.fillna(order.order_estimated_delivery_date, inplace=True)
+order.order_approved_at.fillna(order.order_purchase_timestamp, inplace=True)
+order.order_delivered_carrier_date.fillna(order.order_approved_at, inplace=True)
+datetime_columns = ['order_purchase_timestamp', 'order_approved_at', 'order_delivered_carrier_date', 'order_delivered_customer_date', 'order_estimated_delivery_date']
+for column in datetime_columns:
+  order[column] = pd.to_datetime(order[column])
 product.dropna(inplace=True)
+geolocation.drop_duplicates(inplace=True)
 
-order_fix = pd.merge(
+
+st.title("Projek Analisis Data Dicoding")
+st.write("""
+Nama : Muchammad Udin Mustofa\n
+Email: muchammad.udin.mustofa@mail.ugm.ac.id\n
+ID   : udintofa
+""")
+st.header("E-Commerce Public Dataset by Olist")
+st.subheader("Exploratory Data Analisys")
+
+with st.expander("Explore order"):
+    st.write('Sampel')
+    st.dataframe(order.sample(5))
+    st.write("Deskripsi Data")
+    st.dataframe(order.describe(include="all"))
+
+with st.expander("Explore order_item"):
+    st.write("Sampel")
+    st.dataframe(order_item.sample(5))
+    st.write("Deskripsi Data")
+    st.dataframe(order_item.describe(include='all'))
+    st.write("Jumlah produk yg dibeli dalam sekali pembelian")
+    st.dataframe(order_item.groupby(by="order_id").order_item_id.sum().sort_values(ascending=False))
+    st.write("Produk paling laku")
+    produk_paling_laku = order_item.groupby(by="product_id").order_item_id.sum().sort_values(ascending=False)
+    produk_paling_laku = produk_paling_laku.reset_index()
+    st.dataframe(produk_paling_laku.head())
+    st.write("Penjual paling laku")
+    penjual_paling_laku = order_item.groupby(by="seller_id").order_item_id.sum().sort_values(ascending=False)
+    penjual_paling_laku = penjual_paling_laku.reset_index()
+    st.dataframe(penjual_paling_laku.head())
+
+with st.expander("Explore order dan order_item"):
+    order_seller_customer = pd.merge(
     left=order,
     right=order_item,
     how='inner',
     left_on='order_id',
     right_on='order_id'
-)
-order_kota_customer = pd.merge(
-    left=order_fix,
-    right=customer,
-    how='inner',
-    left_on='customer_id',
-    right_on='customer_id'
-)
-order_kota = pd.merge(
-    left=order_kota_customer,
+    )
+    st.write("Sampel Merger dari order dan orer_item")
+    st.dataframe(order_seller_customer.sample(5))
+    st.write("Deskripsi data")
+    st.dataframe(order_seller_customer.describe(include='all'))
+
+with st.expander("Explore seller"):
+    st.write("Sampel")
+    st.dataframe(seller.sample(5))
+    st.write("Deskripsi")
+    st.dataframe(seller.describe(include='all'))
+    st.write('Jumlah seller tiap kota')
+    st.dataframe(seller.groupby(by="seller_city").seller_id.nunique().sort_values(ascending=False))
+    st.write('Jumlah seller tiap state')
+    st.dataframe(seller.groupby(by="seller_state").seller_id.nunique().sort_values(ascending=False))
+
+with st.expander("Explore customer"):
+    st.write("Sample")
+    st.dataframe(customer.sample(5))
+    st.write("Deskripsi data")
+    st.dataframe(customer.describe(include='all'))
+    st.write('Jumlah customer tiap kota')
+    st.dataframe(customer.groupby(by="customer_city").customer_id.nunique().sort_values(ascending=False))
+    st.write('Jumlah customer tiap state')
+    st.dataframe(customer.groupby(by="customer_state").customer_id.nunique().sort_values(ascending=False))
+
+with st.expander("Explore order & order_item & seller & customer"):
+    order_seller_customer_kota_seller = pd.merge(
+    left=order_seller_customer,
     right=seller,
     how='inner',
     left_on='seller_id',
     right_on='seller_id'
-)
-kota_pembeli = order_kota.groupby(by='customer_city').agg({
-    'order_id': 'count'
-    }).sort_values(by='order_id', ascending=False).head(5)
+    )
+    order_kota = pd.merge(
+    left=order_seller_customer_kota_seller,
+    right=customer,
+    how='inner',
+    left_on='customer_id',
+    right_on='customer_id'
+    )
+    order_kota.drop(columns=[
+    'order_status',
+    'order_purchase_timestamp',
+    'order_approved_at',
+    'order_delivered_customer_date',
+    'order_delivered_carrier_date',
+    'order_estimated_delivery_date',
+    'order_item_id',
+    'shipping_limit_date',
+    'price',
+    'freight_value',
+    'customer_unique_id',
+    ])
+    st.write("Sampel")
+    st.dataframe(order_kota.sample(5))
+    st.write("Deskripsi Data")
+    st.dataframe(order_kota.describe(include='all'))
+    kota_paling_laku = order_kota.groupby(by='seller_city').order_id.nunique().sort_values(ascending=False)
+    kota_paling_laku = kota_paling_laku.reset_index()
+    kota_konsumtif = order_kota.groupby(by='customer_city').order_id.nunique().sort_values(ascending=False)
+    kota_konsumtif = kota_konsumtif.reset_index()
+    st.write("Kota paling laku")
+    st.dataframe(kota_paling_laku.head(5))
+    st.write("Kota paling konsumtif")
+    st.dataframe(kota_konsumtif.head(5))
 
-kota_penjual = order_kota.groupby(by='seller_city').agg({
-    'order_id': 'count'
-    }).sort_values(by='order_id', ascending=False).head(5)
-
-top_produk = order_kota.groupby(by='product_id').agg({
-     'order_id': 'count'
-     }).sort_values(by='order_id', ascending=False)
-
-nama_produk = pd.merge(
-    left=top_produk,
+with st.expander("Explore product"):
+    st.write("Sampel")
+    st.dataframe(product.sample(5))
+    st.write("Deskripsi data")
+    st.dataframe(product.describe(include='all'))
+    st.write("Banyak jenis produk yg dijual")
+    st.dataframe(product.groupby(by="product_category_name").product_id.nunique().sort_values(ascending=False))
+    st.write("Produk paling laku")
+    nama_produk = pd.merge(
+    left=produk_paling_laku,
     right=product,
     how='inner',
     left_on='product_id',
     right_on='product_id'
-)
-nama_produk = nama_produk[["product_id", "product_category_name", "order_id"]]
+    )
+    nama_produk = nama_produk[['product_id', 'product_category_name', 'order_item_id']]
+    st.dataframe(nama_produk.head(10))
 
-jumlah_produk = nama_produk.groupby(by='product_category_name').agg({
-    'order_id': 'sum'
-    }).sort_values(by='order_id', ascending=False).head(10)
-
-
-
-sao_paulo = order_kota[order_kota['seller_city']=='sao paulo']
-
-top_sao_paulo = sao_paulo.groupby(by='seller_id').agg({
-    'order_id': 'count',
-    'seller_zip_code_prefix': 'first'
-    }).sort_values(by='order_id', ascending=False)
-
-top_sao_paulo_geolocation = pd.merge(
-    left=top_sao_paulo,
+with st.expander("Explore geolocation"):
+    st.write("Sample")
+    st.dataframe(geolocation.sample(5))
+    st.write("Deskripsi data")
+    st.dataframe(geolocation.describe(include='all'))
+    st.write("Lokasi Penjual Paling laku")
+    lokasi_penjual = pd.merge(
+    left=seller,
     right=geolocation,
     how='inner',
     left_on='seller_zip_code_prefix',
     right_on='geolocation_zip_code_prefix'
-).sort_values(by='order_id', ascending=False)
-
-top_5_seller_sao_paulo = top_sao_paulo_geolocation.groupby(by='order_id').agg({
-    'seller_zip_code_prefix': 'first',
+    )
+    lokasi_penjual_paling_laku = pd.merge(
+    left=penjual_paling_laku,
+    right=lokasi_penjual,
+    how='inner',
+    left_on='seller_id',
+    right_on='seller_id'
+    )
+    lokasi_penjual_paling_laku = lokasi_penjual_paling_laku.groupby(by='seller_id').agg({
+    'order_item_id': 'count',
     'geolocation_lat': 'first',
     'geolocation_lng': 'first'
-    }).sort_values(by='order_id', ascending=False).head(10)
-top_5_seller_sao_paulo.reset_index(inplace=True)
+    }).sort_values(by='order_item_id', ascending=False)
+    lokasi_penjual_paling_laku = lokasi_penjual_paling_laku.reset_index()
+    st.dataframe(lokasi_penjual_paling_laku.head(10))
 
-##########Ini memulai untuk menampilkan di web yang dibuat###################
-st.title("Projek Analisis Data")
-st.subheader("E-Commerce Public Dataset")
-st.markdown(
-    '''
-    Nama: Muchammad Udin Mustofa\n
-    Email: muchammad.udin.mustofa@mail.ugm.ac.id\n
-    ID Dicoding: udintofa
-    '''
-)
-tab1, tab2, tab3, tab4 = st.tabs(["Home", "Pertanyaan 1", "Pertanyaan 2", "Analisis Lanjutan"])
+st.subheader("Visualization & Explanatory Analysis")
+with st.expander("Pertanyaan 1: Dimana lokasi geografis tingkat penjualan tertinggi serta lokasi geografis tingkat pembelian produk tertinggi?"):
+    st.write("Lokasi geografis tingkat penjualan tertinggi")
+    st.dataframe(kota_paling_laku.head(10))
 
-with tab1:
-    st.header("Tentang Projek Analisis Data")
-    st.markdown(
-        """
-        Ini adalah projek dalam modul Belajar Analisis Data dengan Python. Dataset yang diambil adalah E-Commerce Public Dataset.
-        Dalam menganalisis data, diambil 2 buah pertanyaan, yaitu:\n
-        1. Dimana lokasi geografis dengan tingkat pembelian serta lokasi geografis penjualan produk tertinggi?\n
-        2. Produk manakah yang memiliki jumlah order paling banyak pada periode tersebut?
-        """
-    )
-
-with tab2:
-    st.title("Pertanyaan 1")
-    st.write("Dimana lokasi geografis dengan tingkat pembelian serta lokasi geografis penjualan produk tertinggi?")
-    
-    st.header("Lokasi dg Penjualan Tertinggi")
-    # Dataframe kota_penjual
-    st.dataframe(kota_penjual)
-    st.write("Terdapat urutan kota dari jumlah penjualan paling tinggi, kita ambil 5 kota dengan penjualan tertiinggi. Diperoleh Urutan kota dengan jumlah penjualan paling tinggi adalah Sao paulo, Ibitinga, Curitiba, Santo Andre, dan Sao Jose di Rio Preto. Dengan jumlah penjualan pada periode tersebut tertera pada tabel diatas.")
-    # Plot grafik bar untuk kota penjual
-    fig, ax = plt.subplots()
-    ax.bar(x=kota_penjual.index, height=kota_penjual['order_id'])
-    plt.xticks(rotation=60)
+    st.write("Visualisasi")
+    top_10_paling_laku = kota_paling_laku.head(10)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.bar(top_10_paling_laku['seller_city'], top_10_paling_laku['order_id'])
+    ax.set_xticks(range(len(top_10_paling_laku['seller_city'])))
+    ax.set_xticklabels(top_10_paling_laku['seller_city'], rotation=60)
+    ax.set_title('Kota dengan Penjualan Tertinggi')
+    ax.set_xlabel('Kota')
+    ax.set_ylabel('Jumlah Penjualan')
     st.pyplot(fig)
-    st.write("Jika divisualisasikan dengan dengan bar chart, diperoleh visualisasi seperti grafik diatas. Kota dengan penjualan paling banyak adalah Sao Paulo dengan jumlah penjualannya adalah $27350$ transaksi pada periode tersebut. Dikuti dengan 4 kota lainnya yang berbanding jauh lebih sedikit daripada kota Sao Paulo.")
 
-    st.header("Lokasi dg PembelianTertinggi")
-    # Dataframe kota_pembeli
-    st.dataframe(kota_pembeli)
-    st.write("Terdapat urutan kota dari jumlah pembelian paling tinggi, kita ambil 5 kota dengan pembelian tertinggi. Diperoleh urutan kota dengan jumlah pembelian paling tinggi adalah Sao paulo, Rio de Janeiro, Belo Horizonte, Brasilia, dan Curitiba. Dengan jumlah pembelian pada periode tersebut tertera pada tabel diatas.")
-    # Plot grafik bar untuk kota pembeli
-    fig, ax = plt.subplots()
-    ax.bar(x=kota_pembeli.index, height=kota_pembeli['order_id'])
-    plt.xticks(rotation=60)
+    st.write("Lokasi geografis tingkat pembelian tertinggi")
+    st.dataframe(kota_konsumtif.head(10))
+    st.write("Visualisasi")
+    top_10_konsumtif = kota_konsumtif.head(10)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.bar(top_10_konsumtif['customer_city'], top_10_konsumtif['order_id'])
+    ax.set_xticks(range(len(top_10_konsumtif['customer_city'])))
+    ax.set_xticklabels(top_10_konsumtif['customer_city'], rotation=60)
+    ax.set_title('Kota dengan Pembelian Tertinggi')
+    ax.set_xlabel('Kota')
+    ax.set_ylabel('Jumlah Pembelian')
     st.pyplot(fig)
-    st.write("Jika divisualisasikan dengan dengan bar chart, diperoleh visualisasi seperti grafik diatas. Kota dengan pembelian paling banyak adalah Sao Paulo dengan jumlah pembeliannya adalah $17400$ transaksi pada periode tersebut. Dikuti dengan 4 kota lainnya yang berbanding cukup lebih sedikit daripada kota Sao Paulo.")
 
-with tab3:
-    st.header("Pertanyaan 2")
-    st.write("Produk manakah yang memiliki jumlah order paling banyak pada periode tersebut?")
-    st.dataframe(jumlah_produk)
-    st.write("Terdapat urutan nama produk dari jumlah order paling tinggi, kita ambil 10 nama produk dengan order tertinggi. Diperoleh urutan produk dengan jumlah order paling tinggi adalah Cama Mesa Banho (Tempat tidur, meja dan kamar mandi) dengan jumlah $10952$ order. Dengan jumlah order pada periode tersebut tertera pada tabel diatas.")
-    fig, ax = plt.subplots()
-    ax.bar(x=jumlah_produk.index, height=jumlah_produk['order_id'])
-    plt.xticks(rotation=60)
-    st.title("Jumlah Order per Kota Penjual")
+with st.expander("Pertanyaan 2: Produk manakah yang paling banyak terjual pada periode $2016-2018$?"):
+    st.write('Produk yang paling banyak terjual')
+    produk_paling_laku = nama_produk.groupby(by='product_category_name').order_item_id.sum().sort_values(ascending=False)
+    produk_paling_laku = produk_paling_laku.reset_index()
+    st.dataframe(produk_paling_laku.head(10))
+
+    st.write("Visualisasi")
+    top_10_produk = produk_paling_laku.head(10)
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.bar(top_10_produk['product_category_name'], top_10_produk['order_item_id'])
+    ax.set_xticks(range(len(top_10_produk['product_category_name'])))
+    ax.set_xticklabels(top_10_produk['product_category_name'], rotation=60)
+    ax.set_title('Produk paling banyak terjual')
+    ax.set_xlabel('Produk')
+    ax.set_ylabel('Jumlah Penjualan')
     st.pyplot(fig)
-    st.write("Jika divisualisasikan dengan dengan bar chart, diperoleh visualisasi seperti grafik diatas. Nama produk dengan order paling banyak adalah Cama Mesa Banho (Tempat tidur, meja dan kamar mandi) dengan jumlah $10952$ order pada periode tersebut. Dikuti dengan 9 produk lainnya yang jumlah ordernya ada dibawah Cama Mesa Banho.")
 
-with tab4:
-    st.title("Analisis Lanjutan Menggunakan dan Geopandas")
-    st.write("Dibuat sebuah analisis lanjutan untuk mengetahui lokasi 5 penjual dengan jumlah order terbanyak pada periode 2016-2018 di kota Sao Paulo.")
+st.subheader("Analisis Lanjutan")
+with st.expander("Lokasi penjual paling laku"):
+    top_10_penjual = lokasi_penjual_paling_laku.head(10)
+    peta = folium.Map(location=[-21.55052, -46.633308], zoom_start=6)
+    marker_cluster = MarkerCluster().add_to(peta)
+    for index, seller in top_10_penjual.iterrows():
+        folium.Marker(
+            location=[seller['geolocation_lat'], seller['geolocation_lng']],
+            popup=f"Seller ID: {seller['seller_id']}",
+            icon=folium.Icon(color="blue")
+        ).add_to(marker_cluster)
+    st_data = st_folium(peta, width=700, height=500)
 
-    df = gpd.GeoDataFrame(top_5_seller_sao_paulo, geometry=gpd.points_from_xy(top_5_seller_sao_paulo['geolocation_lng'], top_5_seller_sao_paulo['geolocation_lat']))
-    
-    # Set CRS ke EPSG:4326 (koordinat latitude/longitude WGS 84)
-    df.set_crs(epsg=4326, inplace=True)
-    
-    # Plot GeoDataFrame
-    fig, ax = plt.subplots(figsize=(10, 6))
-    df.plot(ax=ax, color='blue', marker='o', markersize=50, label="Penjual")
+st.subheader("Conclusion Pertanyaan")
+with st.expander("Pertanyaan 1"):
+    st.write("Dimana lokasi geografis tingkat penjualan tertinggi serta lokasi geografis tingkat pembelian produk tertinggi?")
+    st.write("Lokasi geografis tingkat penjualan tertinggi")
+    st.dataframe(kota_paling_laku.head(10))
 
-    # Tambahkan peta dasar menggunakan contextily
-    cx.add_basemap(ax, crs=df.crs, source=cx.providers.OpenStreetMap.Mapnik)
-
-    ax.set_title("Peta Penjual di Sao Paulo")
-    ax.set_xlabel("Longitude")
-    ax.set_ylabel("Latitude")
-    
+    st.write("Visualisasi")
+    top_10_paling_laku = kota_paling_laku.head(10)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.bar(top_10_paling_laku['seller_city'], top_10_paling_laku['order_id'])
+    ax.set_xticks(range(len(top_10_paling_laku['seller_city'])))
+    ax.set_xticklabels(top_10_paling_laku['seller_city'], rotation=60)
+    ax.set_title('Kota dengan Penjualan Tertinggi')
+    ax.set_xlabel('Kota')
+    ax.set_ylabel('Jumlah Penjualan')
     st.pyplot(fig)
+
+    st.write("Lokasi geografis tingkat pembelian tertinggi")
+    st.dataframe(kota_konsumtif.head(10))
+    st.write("Visualisasi")
+    top_10_konsumtif = kota_konsumtif.head(10)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.bar(top_10_konsumtif['customer_city'], top_10_konsumtif['order_id'])
+    ax.set_xticks(range(len(top_10_konsumtif['customer_city'])))
+    ax.set_xticklabels(top_10_konsumtif['customer_city'], rotation=60)
+    ax.set_title('Kota dengan Pembelian Tertinggi')
+    ax.set_xlabel('Kota')
+    ax.set_ylabel('Jumlah Pembelian')
+    st.pyplot(fig)
+
+    with st.container():
+        st.markdown('''
+        Terdapat urutan kota dari jumlah penjualan paling tinggi, kita ambil 10 kota dengan penjualan tertinggi.  
+        Diperoleh Urutan kota dengan jumlah penjualan paling tinggi adalah **Sao Paulo, Ibitinga, Curitiba, Santo Andre, 
+        Belo Horizonte, Rio de Janeiro, Guarulhos, Ribeirao Preto, Sao Jose do Rio Preto, dan Maringa**.  
+
+        Terdapat urutan kota dari jumlah pembelian paling tinggi, kita ambil 5 kota dengan pembelian tertinggi.  
+        Diperoleh urutan kota dengan jumlah pembelian paling tinggi adalah **Sao Paulo, Rio de Janeiro, Belo Horizonte, 
+        Brasilia, Curitiba, Campinas, Porto Alegre, Salvador, Guarulhos, dan Sao Bernardo do Campo**.  
+
+        Dengan jumlah pembelian pada periode tersebut tertera pada tabel di atas. Kedua hasil analisis data di atas 
+        akan memberikan informasi yang sangat penting bagi perusahaan jasa kirim. Mereka mendapatkan informasi lebih 
+        mengenai dari kota mana yang paling banyak mengirim barang dan dari kota mana yang menjadi tujuan pengiriman 
+        barang tersebut.
+        ''')
+
+with st.expander("Pertanyaan 2"):
+    st.write("Produk manakah yang paling banyak terjual pada periode $2016-2018$?")
+    st.write('Produk yang paling banyak terjual')
+    produk_paling_laku = nama_produk.groupby(by='product_category_name').order_item_id.sum().sort_values(ascending=False)
+    produk_paling_laku = produk_paling_laku.reset_index()
+    st.dataframe(produk_paling_laku.head(10))
+
+    st.write("Visualisasi")
+    top_10_produk = produk_paling_laku.head(10)
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.bar(top_10_produk['product_category_name'], top_10_produk['order_item_id'])
+    ax.set_xticks(range(len(top_10_produk['product_category_name'])))
+    ax.set_xticklabels(top_10_produk['product_category_name'], rotation=60)
+    ax.set_title('Produk paling banyak terjual')
+    ax.set_xlabel('Produk')
+    ax.set_ylabel('Jumlah Penjualan')
+    st.pyplot(fig)
+
+    with st.container():
+        st.markdown('''
+        Terdapat urutan nama produk dari jumlah order paling tinggi, kita ambil 10 nama produk dengan order tertinggi. 
+        Diperoleh urutan produk dengan jumlah order paling tinggi adalah Cama Mesa Banho (Tempat tidur, meja dan kamar mandi) dengan jumlah $10952$ order. 
+        Dengan jumlah order pada periode tersebut tertera pada tabel diatas. 
+        Data tersebut akan berguna bagi para seller dalam meningkatkan produksi barang yang paling diminati oleh masyarakat.
+        ''')
