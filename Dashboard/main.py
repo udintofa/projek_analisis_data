@@ -178,7 +178,20 @@ with st.expander("Explore geolocation"):
 st.subheader("Visualization & Explanatory Analysis")
 with st.expander("Pertanyaan 1: Dimana lokasi geografis tingkat penjualan tertinggi serta lokasi geografis tingkat pembelian produk tertinggi?"):
     st.write("Lokasi geografis tingkat penjualan tertinggi")
-    st.dataframe(kota_paling_laku.head(10))
+    top_10_paling_laku = kota_paling_laku.head(10)
+
+    order_range = st.slider("Filter berdasarkan jumlah order:", 
+                            min_value=int(top_10_paling_laku['order_id'].min()), 
+                            max_value=int(top_10_paling_laku['order_id'].max()), 
+                            value=(int(top_10_paling_laku['order_id'].min()), int(top_10_paling_laku['order_id'].max())))
+
+    # Filter DataFrame berdasarkan rentang order_id yang dipilih
+    top_10_paling_laku = top_10_paling_laku[
+        (top_10_paling_laku['order_id'] >= order_range[0]) & 
+        (top_10_paling_laku['order_id'] <= order_range[1])
+    ]
+
+    st.dataframe(top_10_paling_laku)
 
     st.write("Visualisasi")
     top_10_paling_laku = kota_paling_laku.head(10)
@@ -192,7 +205,19 @@ with st.expander("Pertanyaan 1: Dimana lokasi geografis tingkat penjualan tertin
     st.pyplot(fig)
 
     st.write("Lokasi geografis tingkat pembelian tertinggi")
-    st.dataframe(kota_konsumtif.head(10))
+    top_10_konsumtif = kota_konsumtif.head(10)
+
+    order_range = st.slider("Filter berdasarkan jumlah order:", 
+                        min_value=int(top_10_konsumtif['order_id'].min()), 
+                        max_value=int(top_10_konsumtif['order_id'].max()), 
+                        value=(int(top_10_konsumtif['order_id'].min()), int(top_10_konsumtif['order_id'].max())))
+
+    top_10_konsumtif = top_10_konsumtif[
+        (top_10_konsumtif['order_id'] >= order_range[0]) & 
+        (top_10_konsumtif['order_id'] <= order_range[1])
+    ]
+    st.dataframe(top_10_konsumtif)
+  
     st.write("Visualisasi")
     top_10_konsumtif = kota_konsumtif.head(10)
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -208,11 +233,19 @@ with st.expander("Pertanyaan 2: Produk manakah yang paling banyak terjual pada p
     st.write('Produk yang paling banyak terjual')
     produk_paling_laku = nama_produk.groupby(by='product_category_name').order_item_id.sum().sort_values(ascending=False)
     produk_paling_laku = produk_paling_laku.reset_index()
-    st.dataframe(produk_paling_laku.head(10))
+
+    top_10_produk = produk_paling_laku.head(10)
+    order_range = st.slider("Filter berdasarkan jumlah order item:", 
+                            min_value=int(top_10_produk['order_item_id'].min()), 
+                            max_value=int(top_10_produk['order_item_id'].max()), 
+                            value=(int(top_10_produk['order_item_id'].min()), int(top_10_produk['order_item_id'].max())))
+    top_10_produk = top_10_produk[
+        (top_10_produk['order_item_id'] >= order_range[0]) & 
+        (top_10_produk['order_item_id'] <= order_range[1])
+    ]
+    st.dataframe(top_10_produk)
 
     st.write("Visualisasi")
-    top_10_produk = produk_paling_laku.head(10)
-
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.bar(top_10_produk['product_category_name'], top_10_produk['order_item_id'])
     ax.set_xticks(range(len(top_10_produk['product_category_name'])))
